@@ -1,0 +1,245 @@
+<title>결합 계산 그림 풀이</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 레이아웃: 한 열 세로 흐름. ① 합치기 → ② 채점 → ③ 값 고르기, 가운데 계산기 */
+:root{
+  --bg:#f6f8fb;--card:#ffffff;--ink:#16202e;--mut:#5d6878;--line:#dfe4ec;--soft:#edf2f9;
+  --bm:#0b63c9;--vec:#e06c00;--fuse:#5b4fd6;--ans:#c99400;--ans-bg:#fff5d6;--good:#1e8a3c;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10141b;--card:#18202b;--ink:#eef2f8;--mut:#9aa6b6;--line:#2b3644;--soft:#1f2a38;
+  --bm:#5aa8ff;--vec:#ff9b45;--fuse:#9d94ff;--ans:#f0c040;--ans-bg:#3d3212;--good:#38c76a;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141b;--card:#18202b;--ink:#eef2f8;--mut:#9aa6b6;--line:#2b3644;--soft:#1f2a38;
+  --bm:#5aa8ff;--vec:#ff9b45;--fuse:#9d94ff;--ans:#f0c040;--ans-bg:#3d3212;--good:#38c76a;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;word-break:keep-all;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+main{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-size:26px;line-height:1.3;margin:0;text-wrap:balance}
+h2{font-size:19px;margin:0 0 10px;text-wrap:balance}
+p{margin:0}
+.mut{color:var(--mut)}.small{font-size:13px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.bm{color:var(--bm)}.vec{color:var(--vec)}.fuse{color:var(--fuse)}
+section{display:flex;flex-direction:column;gap:12px}
+
+/* 큰 흐름 3단계 */
+.steps{display:grid;grid-template-columns:1fr;gap:8px}
+.step{display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.step b{display:block}
+.dot{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;font-family:var(--f-num)}
+.d1{background:var(--fuse)}.d2{background:var(--ans)}.d3{background:var(--good)}
+.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:1px 9px;margin-left:6px;vertical-align:2px}
+.no-ans{background:var(--soft);color:var(--mut)}
+.yes-ans{background:var(--ans-bg);color:var(--ans)}
+.arrow{text-align:center;color:var(--mut);line-height:1;font-size:18px}
+
+/* 표 */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:420px;font-size:14px}
+th,td{padding:9px 10px;text-align:center;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--mut);font-weight:600}
+tr:last-child td{border-bottom:0}
+td:first-child,th:first-child{text-align:left}
+
+/* 계산기 */
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:inherit;font-size:14px;font-weight:600;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--fuse);border-color:var(--fuse);color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-offset:2px}
+.formula{background:var(--soft);border-radius:12px;padding:12px 14px;font-family:var(--f-num);font-size:14px;overflow-x:auto;white-space:nowrap}
+.ctrls{display:grid;grid-template-columns:1fr;gap:10px}
+.ctrl{display:grid;grid-template-columns:110px 1fr 54px;gap:10px;align-items:center;font-size:14px}
+.ctrl input{width:100%;accent-color:var(--fuse)}
+.ctrl output{font-family:var(--f-num);font-weight:700;text-align:right}
+.try{display:flex;gap:6px;flex-wrap:wrap;font-size:13px;align-items:center}
+.try button{font:inherit;font-size:13px;padding:4px 10px;border-radius:8px;border:1px dashed var(--fuse);background:transparent;color:var(--fuse);cursor:pointer}
+
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;transition:transform .25s}
+.row.ans{border-color:var(--ans);background:var(--ans-bg)}
+.rank{font-family:var(--f-num);font-weight:700;font-size:18px;text-align:center}
+.row .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.row .name{font-weight:700}
+.row .calc{font-family:var(--f-num);font-size:12.5px;color:var(--mut);overflow-x:auto;white-space:nowrap}
+.bar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden;margin-top:6px;display:flex}
+.bar span{display:block;height:100%}
+.bar .b{background:var(--bm)}.bar .v{background:var(--vec)}
+
+.reveal{display:flex;flex-direction:column;gap:10px;background:var(--card);border:2px solid var(--ans);border-radius:14px;padding:14px}
+.reveal button{align-self:flex-start;font:inherit;font-weight:700;padding:8px 16px;border-radius:10px;border:0;background:var(--ans);color:#1b1500;cursor:pointer}
+.big{font-size:22px;font-weight:700}
+
+.cmp{display:grid;grid-template-columns:1fr;gap:8px}
+.cmp div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.cmp code{font-family:var(--f-num);font-size:13.5px}
+@media (min-width:640px){.cmp{grid-template-columns:1fr 1fr 1fr}}
+@media (prefers-reduced-motion:reduce){.row{transition:none}}
+</style>
+
+<main>
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>결합 계산 그림 풀이</h1>
+    <p class="mut">질문 하나에 후보 문서 5개가 있는 예시로, 합치기 → 채점 → 값 고르기를 순서대로 봅니다. 수치는 설명용 예시입니다.</p>
+  </header>
+
+  <section>
+    <h2>큰 흐름: 정답은 언제 쓰이나</h2>
+    <div class="steps">
+      <div class="step"><div class="dot d1">1</div><div><b>합치기 <span class="tag no-ans">정답 안 씀</span></b><span class="mut">문서마다 BM25 · 벡터의 순위나 점수를 넣어 결합 점수를 내고, 그 점수로 줄을 다시 세운다.</span></div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="dot d2">2</div><div><b>채점 <span class="tag yes-ans">여기서 정답 확인</span></b><span class="mut">다 세운 줄에서 정답이 몇 위인지 본다. 1위면 1점, 5위면 0.2점 (MRR@10).</span></div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="dot d3">3</div><div><b>값 고르기 <span class="tag yes-ans">선택용 질문의 채점 결과</span></b><span class="mut">k · w · α를 바꿔 가며 1→2를 반복하고, 선택용 질문 평균 점수가 가장 높은 값을 고른다.</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>예시 질문의 후보 5개</h2>
+    <p class="mut small">검색기 두 개가 각자 낸 순위와 점수. 이 단계에서는 어느 문서가 정답인지 모른다.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>문서</th><th class="bm">BM25 순위</th><th class="bm">BM25 점수</th><th class="vec">벡터 순위</th><th class="vec">벡터 점수</th></tr></thead>
+      <tbody id="inTable"></tbody>
+    </table></div>
+    <p class="mut small">top-100 안 최저 점수: BM25 4.2, 벡터 0.71 (점수 결합의 0~1 맞추기에 쓰임)</p>
+  </section>
+
+  <section>
+    <h2>① 합치기 계산</h2>
+    <div class="tabs" role="group" aria-label="결합 방식">
+      <button id="t-rrf" data-m="rrf" aria-pressed="true">RRF</button>
+      <button id="t-wrrf" data-m="wrrf" aria-pressed="false">가중 RRF</button>
+      <button id="t-score" data-m="score" aria-pressed="false">점수 결합</button>
+    </div>
+    <div class="formula" id="formula"></div>
+    <p id="explain" class="small"></p>
+    <div class="ctrls">
+      <label class="ctrl" id="c-k"><span>k</span><input id="k" type="range" min="0" max="4" step="1" value="3"><output id="kv">60</output></label>
+      <label class="ctrl" id="c-w"><span id="wlabel">w (벡터 비중)</span><input id="w" type="range" min="1" max="9" step="1" value="5"><output id="wv">0.5</output></label>
+    </div>
+    <div class="try" id="try"></div>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <section>
+    <h2>② 채점</h2>
+    <div class="reveal">
+      <p>줄을 다 세운 뒤에 처음으로 정답을 확인한다.</p>
+      <button id="revealBtn" type="button">정답 공개</button>
+      <div id="result" hidden></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>세 방식 한눈에</h2>
+    <p class="mut small">더하는 모양은 같다. 넣는 값이 다르다.</p>
+    <div class="cmp">
+      <div><b>RRF</b><br><code>1/(k+<span class="bm">BM25 순위</span>) + 1/(k+<span class="vec">벡터 순위</span>)</code><p class="small mut">순위만 쓴다. 두 검색기 비중이 같다.</p></div>
+      <div><b>가중 RRF</b><br><code>(1−w)·1/(k+<span class="bm">순위</span>) + w·1/(k+<span class="vec">순위</span>)</code><p class="small mut">RRF의 두 항에 비중을 곱한 것. 여전히 순위만 쓴다.</p></div>
+      <div><b>점수 결합</b><br><code>(1−α)·<span class="bm">BM25 점수(0~1)</span> + α·<span class="vec">벡터 점수(0~1)</span></code><p class="small mut">검색기가 낸 점수를 쓴다. 1위가 얼마나 앞서는지가 남는다.</p></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const K = [0, 2, 10, 60, 500];
+  const BM_MAX = 23.1, BM_MIN = 4.2, V_MAX = 0.86, V_MIN = 0.71;
+  // 정답은 문서 E. 합치기 계산에서는 쓰지 않는다.
+  const DOCS = [
+    {n:"문서 A", br:3,  bs:11.0, vr:4,    vs:0.80},
+    {n:"문서 B", br:6,  bs:9.0,  vr:2,    vs:0.84},
+    {n:"문서 C", br:2,  bs:11.4, vr:7,    vs:0.78},
+    {n:"문서 D", br:40, bs:6.0,  vr:1,    vs:0.86},
+    {n:"문서 E", br:1,  bs:23.1, vr:null, vs:null}
+  ];
+  const ANSWER = "문서 E";
+  let mode = "rrf", revealed = false;
+  const $ = id => document.getElementById(id);
+  const f4 = x => x.toFixed(4), f2 = x => x.toFixed(2);
+
+  $("inTable").innerHTML = DOCS.map(d =>
+    `<tr><td><b>${d.n}</b></td><td class="num">${d.br}위</td><td class="num">${d.bs.toFixed(1)}</td>` +
+    `<td class="num">${d.vr ? d.vr + "위" : "100위 밖"}</td><td class="num">${d.vs != null ? f2(d.vs) : "–"}</td></tr>`).join("");
+
+  function calc(d){
+    const k = K[+$("k").value], w = +$("w").value / 10;
+    if (mode === "score"){
+      const nb = (d.bs - BM_MIN) / (BM_MAX - BM_MIN);
+      const nv = d.vs != null ? (d.vs - V_MIN) / (V_MAX - V_MIN) : 0;
+      const pb = (1 - w) * nb, pv = w * nv;
+      return {s: pb + pv, pb, pv,
+        line: `${f2(1-w)}×${f2(nb)} + ${f2(w)}×${f2(nv)} = ${f4(pb+pv)}` +
+              `   (BM25 ${d.bs.toFixed(1)}→${f2(nb)}, 벡터 ${d.vs!=null?f2(d.vs):"없음"}→${f2(nv)})`};
+    }
+    const wb = mode === "rrf" ? 1 : (1 - w), wv = mode === "rrf" ? 1 : w;
+    const tb = wb / (k + d.br), tv = d.vr ? wv / (k + d.vr) : 0;
+    const pre = x => mode === "rrf" ? "" : f2(x) + "×";
+    const vpart = d.vr ? `${pre(wv)}1/(${k}+${d.vr})` : "0 (목록 밖)";
+    return {s: tb + tv, pb: tb, pv: tv, line: `${pre(wb)}1/(${k}+${d.br}) + ${vpart} = ${f4(tb+tv)}`};
+  }
+
+  function render(){
+    const k = K[+$("k").value], w = +$("w").value / 10;
+    $("kv").textContent = k; $("wv").textContent = w.toFixed(1);
+    $("c-k").hidden = mode === "score";
+    $("c-w").hidden = mode === "rrf";
+    $("wlabel").textContent = mode === "score" ? "α (벡터 비중)" : "w (벡터 비중)";
+    const F = {
+      rrf: `점수 = 1/(${k} + <span class="bm">BM25 순위</span>) + 1/(${k} + <span class="vec">벡터 순위</span>)`,
+      wrrf: `점수 = ${(1-w).toFixed(1)} × 1/(${k} + <span class="bm">BM25 순위</span>) + ${w.toFixed(1)} × 1/(${k} + <span class="vec">벡터 순위</span>)`,
+      score: `점수 = ${(1-w).toFixed(1)} × <span class="bm">BM25 점수(0~1)</span> + ${w.toFixed(1)} × <span class="vec">벡터 점수(0~1)</span>`
+    };
+    $("formula").innerHTML = F[mode];
+    $("explain").innerHTML = {
+      rrf: "순위만 넣는다. 1위와 2위의 점수 차가 얼마든 '한 칸'이다. 두 검색기에서 모두 점수를 받은 문서가 유리하다.",
+      wrrf: "RRF의 두 항에 비중 (1−w), w를 곱한 것. w=0.5면 순서가 일반 RRF와 같다. 넣는 값은 여전히 순위다.",
+      score: "검색기 점수를 질문마다 0~1로 맞춘다: (점수 − 최저) ÷ (최고 − 최저). 그 값을 비율대로 더한다. 1위가 크게 앞서면 그 차이가 그대로 남는다."
+    }[mode];
+    const tries = {
+      rrf: [["k=60 (교육자료)", 3, 5], ["k=2", 1, 5]],
+      wrrf: [["k=60, w=0.5", 3, 5], ["k=60, w=0.1", 3, 1], ["k=2, w=0.3", 1, 3]],
+      score: [["α=0.4", 3, 4], ["α=0.5", 3, 5], ["α=0.8", 3, 8]]
+    }[mode];
+    $("try").innerHTML = "해 보기: " + tries.map((t, i) => `<button type="button" data-i="${i}">${t[0]}</button>`).join("");
+    $("try").querySelectorAll("button").forEach(b => b.onclick = () => {
+      const t = tries[+b.dataset.i]; $("k").value = t[1]; $("w").value = t[2]; render();
+    });
+
+    const res = DOCS.map(d => ({d, ...calc(d)}))
+      .sort((a, b) => b.s - a.s || a.d.br - b.d.br);   // 동점은 BM25 순위 우선
+    const max = res[0].s;
+    $("rows").innerHTML = res.map((r, i) => {
+      const ans = revealed && r.d.n === ANSWER;
+      return `<div class="row${ans ? " ans" : ""}"><div class="rank">${i+1}</div><div style="min-width:0">
+        <div class="top"><span class="name">${ans ? "★ " : ""}${r.d.n}${ans ? " (정답)" : ""}</span><span class="num">${f4(r.s)}</span></div>
+        <div class="calc">${r.line}</div>
+        <div class="bar"><span class="b" style="width:${r.pb/max*100}%"></span><span class="v" style="width:${r.pv/max*100}%"></span></div>
+      </div></div>`;
+    }).join("");
+
+    if (revealed){
+      const pos = res.findIndex(r => r.d.n === ANSWER) + 1;
+      $("result").hidden = false;
+      $("result").innerHTML = `<p>정답은 <b>문서 E</b>. BM25는 1위로 찾았고, 벡터는 100위 안에 넣지 못했다.</p>
+        <p class="big">결합 후 <span class="num">${pos}</span>위 → 이 질문 점수 <span class="num">1/${pos} = ${(1/pos).toFixed(2)}</span></p>
+        <p class="mut small">위 방식 버튼이나 k · w · α를 바꾸면 이 점수도 바뀐다. ③ 값 고르기는 이 점수를 선택용 질문 전체에서 평균 내 가장 높은 값을 고르는 것이다.</p>`;
+    }
+  }
+
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+    mode = b.dataset.m;
+    document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    if (mode === "score") { $("k").value = 3; $("w").value = 4; } else { $("w").value = 5; }
+    render();
+  });
+  $("k").oninput = render; $("w").oninput = render;
+  $("revealBtn").onclick = () => { revealed = true; $("revealBtn").hidden = true; render(); };
+  render();
+})();
+</script>
