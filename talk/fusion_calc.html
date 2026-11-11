@@ -80,6 +80,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-o
 .cmp code{font-family:var(--f-num);font-size:13.5px}
 @media (min-width:640px){.cmp{grid-template-columns:1fr 1fr 1fr}}
 @media (prefers-reduced-motion:reduce){.row{transition:none}}
+.mmstep{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start}
+.sn{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--fuse);color:#fff;font-family:var(--f-num);font-weight:700;font-size:14px}
+.mmbody{min-width:0;display:flex;flex-direction:column;gap:8px}
+.mmbody table{min-width:0}
+.mm2{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:640px){.mm2{grid-template-columns:1fr 1fr}}
+.mmcard{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.mmrow{display:flex;flex-direction:column;gap:3px}
+.mmbar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden}
+.mmbar i{display:block;height:100%}.mmbar .b{background:var(--bm)}.mmbar .v{background:var(--vec)}
 </style>
 
 <main>
@@ -106,7 +116,56 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-o
       <thead><tr><th>청크</th><th class="bm">BM25 순위</th><th class="bm">BM25 점수</th><th class="vec">벡터 순위</th><th class="vec">벡터 점수</th></tr></thead>
       <tbody id="inTable"></tbody>
     </table></div>
-    <p class="mut small">top-100 안 최저 점수: BM25 4.2, 벡터 0.71 (점수 결합의 0~1 맞추기에 쓰임)</p>
+  </section>
+
+  <section>
+    <h2>점수 결합 준비: 점수를 0~1로 맞추기</h2>
+    <p class="mut small">질문 하나가 들어오면 검색기마다 따로 계산한다 (min-max 정규화).</p>
+    <div class="formula" style="font-size:15px;white-space:normal">맞춘 점수 = (점수 − <b>최저</b>) ÷ (<b>최고</b> − <b>최저</b>)</div>
+
+    <div class="mmstep"><span class="sn">1</span><div class="mmbody"><b>검색기가 top-100과 점수를 낸다</b>
+      <div class="scroll"><table>
+        <thead><tr><th>순위</th><th class="bm">BM25 점수</th><th class="vec">벡터 점수</th></tr></thead>
+        <tbody>
+          <tr><td>1위</td><td class="num">23.1 <span class="mut small">청크 E</span></td><td class="num">0.86 <span class="mut small">청크 D</span></td></tr>
+          <tr><td>2위</td><td class="num">11.4 <span class="mut small">청크 C</span></td><td class="num">0.84 <span class="mut small">청크 B</span></td></tr>
+          <tr><td>3위</td><td class="num">11.0 <span class="mut small">청크 A</span></td><td class="num">0.83 <span class="mut small">후보 밖</span></td></tr>
+          <tr><td>…</td><td>…</td><td>…</td></tr>
+          <tr><td>100위</td><td class="num">4.2</td><td class="num">0.71</td></tr>
+        </tbody>
+      </table></div>
+    </div></div>
+
+    <div class="mmstep"><span class="sn">2</span><div class="mmbody"><b>그 목록에서 최고와 최저를 찾는다</b>
+      <div class="mm2">
+        <div class="mmcard"><span class="bm"><b>BM25</b></span><span class="num">최고 23.1 · 최저 4.2</span><span class="num">폭 = 23.1 − 4.2 = <b>18.9</b></span></div>
+        <div class="mmcard"><span class="vec"><b>벡터</b></span><span class="num">최고 0.86 · 최저 0.71</span><span class="num">폭 = 0.86 − 0.71 = <b>0.15</b></span></div>
+      </div>
+    </div></div>
+
+    <div class="mmstep"><span class="sn">3</span><div class="mmbody"><b>각 점수에서 최저를 빼고 폭으로 나눈다</b>
+      <div class="mm2">
+        <div class="mmcard"><span class="bm"><b>BM25</b></span>
+          <div class="mmrow"><span class="num">1위 (23.1 − 4.2) ÷ 18.9 = <b>1.00</b></span><div class="mmbar"><i class="b" style="width:100%"></i></div></div>
+          <div class="mmrow"><span class="num">2위 (11.4 − 4.2) ÷ 18.9 = <b>0.38</b></span><div class="mmbar"><i class="b" style="width:38%"></i></div></div>
+          <div class="mmrow"><span class="num">3위 (11.0 − 4.2) ÷ 18.9 = <b>0.36</b></span><div class="mmbar"><i class="b" style="width:36%"></i></div></div>
+          <div class="mmrow"><span class="num">100위 (4.2 − 4.2) ÷ 18.9 = <b>0</b></span><div class="mmbar"></div></div>
+        </div>
+        <div class="mmcard"><span class="vec"><b>벡터</b></span>
+          <div class="mmrow"><span class="num">1위 (0.86 − 0.71) ÷ 0.15 = <b>1.00</b></span><div class="mmbar"><i class="v" style="width:100%"></i></div></div>
+          <div class="mmrow"><span class="num">2위 (0.84 − 0.71) ÷ 0.15 = <b>0.87</b></span><div class="mmbar"><i class="v" style="width:87%"></i></div></div>
+          <div class="mmrow"><span class="num">3위 (0.83 − 0.71) ÷ 0.15 = <b>0.80</b></span><div class="mmbar"><i class="v" style="width:80%"></i></div></div>
+          <div class="mmrow"><span class="num">100위 (0.71 − 0.71) ÷ 0.15 = <b>0</b></span><div class="mmbar"></div></div>
+        </div>
+      </div>
+      <p class="small">BM25는 1위와 2위가 <b>1.00 대 0.38</b>로 차이가 크고, 벡터는 <b>1.00 대 0.87</b>로 작다. 이 간격이 그대로 남는 게 점수 결합이 RRF와 다른 점이다. RRF는 두 경우 모두 "1위, 2위, 한 칸 차이"로 본다.</p>
+    </div></div>
+
+    <div class="mmstep"><span class="sn">4</span><div class="mmbody"><b>다음 질문이 오면 그 질문의 최고·최저로 다시 계산한다</b>
+      <p class="small mut">질문마다 BM25 점수 범위가 다르기 때문이다. 다른 질문에서 BM25 1위가 8.0, 100위가 2.5라면 폭 5.5로 다시 나눈다.</p>
+    </div></div>
+
+    <div class="formula" style="white-space:normal">최종 점수 = (1−α) × <span class="bm">BM25(0~1)</span> + α × <span class="vec">벡터(0~1)</span><br><span class="small">한쪽 목록에 없는 청크는 그쪽 값을 0으로 넣는다.</span></div>
   </section>
 
   <section>
