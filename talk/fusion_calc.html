@@ -85,13 +85,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-o
 <main>
   <header style="display:flex;flex-direction:column;gap:8px">
     <h1>결합 계산 그림 풀이</h1>
-    <p class="mut">질문 하나에 후보 문서 5개가 있는 예시로, 합치기 → 채점 → 값 고르기를 순서대로 봅니다. 수치는 설명용 예시입니다.</p>
+    <p class="mut">질문 하나에 후보 청크 5개가 있는 예시로, 합치기 → 채점 → 값 고르기를 순서대로 봅니다. 수치는 설명용 예시입니다.</p>
   </header>
 
   <section>
     <h2>큰 흐름: 정답은 언제 쓰이나</h2>
     <div class="steps">
-      <div class="step"><div class="dot d1">1</div><div><b>합치기 <span class="tag no-ans">정답 안 씀</span></b><span class="mut">문서마다 BM25 · 벡터의 순위나 점수를 넣어 결합 점수를 내고, 그 점수로 줄을 다시 세운다.</span></div></div>
+      <div class="step"><div class="dot d1">1</div><div><b>합치기 <span class="tag no-ans">정답 안 씀</span></b><span class="mut">청크마다 BM25 · 벡터의 순위나 점수를 넣어 결합 점수를 내고, 그 점수로 줄을 다시 세운다.</span></div></div>
       <div class="arrow">↓</div>
       <div class="step"><div class="dot d2">2</div><div><b>채점 <span class="tag yes-ans">여기서 정답 확인</span></b><span class="mut">다 세운 줄에서 정답이 몇 위인지 본다. 1위면 1점, 5위면 0.2점 (MRR@10).</span></div></div>
       <div class="arrow">↓</div>
@@ -101,9 +101,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-o
 
   <section>
     <h2>예시 질문의 후보 5개</h2>
-    <p class="mut small">검색기 두 개가 각자 낸 순위와 점수. 이 단계에서는 어느 문서가 정답인지 모른다.</p>
+    <p class="mut small">검색기 두 개가 각자 낸 순위와 점수. 이 단계에서는 어느 청크가 정답인지 모른다.</p>
     <div class="scroll"><table>
-      <thead><tr><th>문서</th><th class="bm">BM25 순위</th><th class="bm">BM25 점수</th><th class="vec">벡터 순위</th><th class="vec">벡터 점수</th></tr></thead>
+      <thead><tr><th>청크</th><th class="bm">BM25 순위</th><th class="bm">BM25 점수</th><th class="vec">벡터 순위</th><th class="vec">벡터 점수</th></tr></thead>
       <tbody id="inTable"></tbody>
     </table></div>
     <p class="mut small">top-100 안 최저 점수: BM25 4.2, 벡터 0.71 (점수 결합의 0~1 맞추기에 쓰임)</p>
@@ -150,15 +150,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-o
 (function(){
   const K = [0, 2, 10, 60, 500];
   const BM_MAX = 23.1, BM_MIN = 4.2, V_MAX = 0.86, V_MIN = 0.71;
-  // 정답은 문서 E. 합치기 계산에서는 쓰지 않는다.
+  // 정답은 청크 E. 합치기 계산에서는 쓰지 않는다.
   const DOCS = [
-    {n:"문서 A", br:3,  bs:11.0, vr:4,    vs:0.80},
-    {n:"문서 B", br:6,  bs:9.0,  vr:2,    vs:0.84},
-    {n:"문서 C", br:2,  bs:11.4, vr:7,    vs:0.78},
-    {n:"문서 D", br:40, bs:6.0,  vr:1,    vs:0.86},
-    {n:"문서 E", br:1,  bs:23.1, vr:null, vs:null}
+    {n:"청크 A", br:3,  bs:11.0, vr:4,    vs:0.80},
+    {n:"청크 B", br:6,  bs:9.0,  vr:2,    vs:0.84},
+    {n:"청크 C", br:2,  bs:11.4, vr:7,    vs:0.78},
+    {n:"청크 D", br:40, bs:6.0,  vr:1,    vs:0.86},
+    {n:"청크 E", br:1,  bs:23.1, vr:null, vs:null}
   ];
-  const ANSWER = "문서 E";
+  const ANSWER = "청크 E";
   let mode = "rrf", revealed = false;
   const $ = id => document.getElementById(id);
   const f4 = x => x.toFixed(4), f2 = x => x.toFixed(2);
@@ -197,7 +197,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-o
     };
     $("formula").innerHTML = F[mode];
     $("explain").innerHTML = {
-      rrf: "순위만 넣는다. 1위와 2위의 점수 차가 얼마든 '한 칸'이다. 두 검색기에서 모두 점수를 받은 문서가 유리하다.",
+      rrf: "순위만 넣는다. 1위와 2위의 점수 차가 얼마든 '한 칸'이다. 두 검색기에서 모두 점수를 받은 청크가 유리하다.",
       wrrf: "RRF의 두 항에 비중 (1−w), w를 곱한 것. w=0.5면 순서가 일반 RRF와 같다. 넣는 값은 여전히 순위다.",
       score: "검색기 점수를 질문마다 0~1로 맞춘다: (점수 − 최저) ÷ (최고 − 최저). 그 값을 비율대로 더한다. 1위가 크게 앞서면 그 차이가 그대로 남는다."
     }[mode];
@@ -226,7 +226,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--fuse);outline-o
     if (revealed){
       const pos = res.findIndex(r => r.d.n === ANSWER) + 1;
       $("result").hidden = false;
-      $("result").innerHTML = `<p>정답은 <b>문서 E</b>. BM25는 1위로 찾았고, 벡터는 100위 안에 넣지 못했다.</p>
+      $("result").innerHTML = `<p>정답은 <b>청크 E</b>. BM25는 1위로 찾았고, 벡터는 100위 안에 넣지 못했다.</p>
         <p class="big">결합 후 <span class="num">${pos}</span>위 → 이 질문 점수 <span class="num">1/${pos} = ${(1/pos).toFixed(2)}</span></p>
         <p class="mut small">위 방식 버튼이나 k · w · α를 바꾸면 이 점수도 바뀐다. ③ 값 고르기는 이 점수를 선택용 질문 전체에서 평균 내 가장 높은 값을 고르는 것이다.</p>`;
     }
